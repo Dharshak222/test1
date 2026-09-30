@@ -1,0 +1,2655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>CareFinder — Find Hospitals Near You</title>
+
+  <!-- Leaflet Map -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f8fc;
+      color: #172033;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    /* NAVBAR */
+
+    nav {
+      height: 70px;
+      background: white;
+      border-bottom: 1px solid #e5eaf1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6%;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      font-size: 25px;
+      font-weight: 800;
+      color: #0b7cff;
+    }
+
+    .logo span {
+      color: #16b364;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: #344054;
+      margin-left: 25px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* HERO */
+
+    .hero {
+      background:
+        linear-gradient(
+          120deg,
+          rgba(10, 115, 255, 0.95),
+          rgba(17, 182, 103, 0.9)
+        );
+      padding: 65px 6% 75px;
+      color: white;
+    }
+
+    .hero-inner {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.05;
+      max-width: 750px;
+      margin-bottom: 18px;
+    }
+
+    .hero p {
+      max-width: 700px;
+      font-size: 18px;
+      line-height: 1.6;
+      opacity: 0.95;
+      margin-bottom: 30px;
+    }
+
+    .search-box {
+      background: white;
+      border-radius: 16px;
+      padding: 10px;
+      max-width: 850px;
+      display: flex;
+      gap: 10px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+      position: relative;
+    }
+
+    .search-box input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 16px;
+      color: #172033;
+      min-width: 0;
+    }
+
+    .search-box button {
+      border: none;
+      background: #0b7cff;
+      color: white;
+      border-radius: 11px;
+      padding: 0 25px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .search-box button:hover {
+      background: #0868d7;
+    }
+
+    .suggestions {
+      position: absolute;
+      left: 10px;
+      right: 120px;
+      top: calc(100% + 5px);
+      background: white;
+      color: #172033;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(0,0,0,.15);
+      z-index: 2000;
+    }
+
+    .suggestion {
+      padding: 13px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #edf0f5;
+      font-size: 14px;
+    }
+
+    .suggestion:hover {
+      background: #f2f7ff;
+    }
+
+    /* FEATURES */
+
+    .features {
+      max-width: 1100px;
+      margin: -35px auto 45px;
+      padding: 0 20px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+
+    .feature {
+      background: white;
+      padding: 22px;
+      border-radius: 14px;
+      box-shadow: 0 8px 25px rgba(0,0,0,.07);
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .feature h3 {
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .feature p {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #667085;
+    }
+
+    /* MAIN */
+
+    main {
+      max-width: 1150px;
+      margin: auto;
+      padding: 0 20px 70px;
+    }
+
+    .toolbar {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 5px 20px rgba(0,0,0,.05);
+      margin-bottom: 20px;
+    }
+
+    .toolbar-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    select {
+      padding: 10px 12px;
+      border: 1px solid #d8dee8;
+      border-radius: 9px;
+      background: white;
+      color: #344054;
+      outline: none;
+    }
+
+    .results-count {
+      font-weight: 700;
+      color: #344054;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 20px;
+    }
+
+    /* MAP */
+
+    .map-container {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      min-height: 600px;
+      box-shadow: 0 7px 25px rgba(0,0,0,.06);
+      position: sticky;
+      top: 90px;
+      height: calc(100vh - 120px);
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 600px;
+    }
+
+    /* HOSPITALS */
+
+    .hospital-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .hospital-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 7px 25px rgba(0,0,0,.06);
+      display: grid;
+      grid-template-columns: 150px 1fr;
+    }
+
+    .hospital-image {
+      width: 150px;
+      height: 100%;
+      min-height: 180px;
+      object-fit: cover;
+      background: #e9eef5;
+    }
+
+    .hospital-content {
+      padding: 18px;
+    }
+
+    .hospital-content h2 {
+      font-size: 19px;
+      margin-bottom: 7px;
+      color: #172033;
+    }
+
+    .address {
+      color: #667085;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      background: #edf5ff;
+      color: #1769aa;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge.green {
+      background: #eafaf1;
+      color: #16804b;
+    }
+
+    .badge.orange {
+      background: #fff4e5;
+      color: #a65d00;
+    }
+
+    .hospital-meta {
+      font-size: 13px;
+      color: #475467;
+      margin-bottom: 12px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: #0b7cff;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #eef2f6;
+      color: #344054;
+    }
+
+    .btn-green {
+      background: #16b364;
+      color: white;
+    }
+
+    .btn:hover {
+      opacity: .9;
+    }
+
+    /* STATUS */
+
+    .status {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: none;
+      text-align: center;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #dce5ef;
+      border-top-color: #0b7cff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .empty {
+      background: white;
+      border-radius: 15px;
+      padding: 40px 20px;
+      text-align: center;
+      color: #667085;
+    }
+
+    /* DETAILS */
+
+    .details {
+      margin-top: 35px;
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 7px 25px rgba(0,0,0,.06);
+      display: none;
+    }
+
+    .details.show {
+      display: block;
+    }
+
+    .details-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .details h2 {
+      font-size: 25px;
+      margin-bottom: 7px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .details-box {
+      background: #f7f9fc;
+      padding: 17px;
+      border-radius: 10px;
+    }
+
+    .details-box h3 {
+      font-size: 13px;
+      color: #667085;
+      margin-bottom: 7px;
+    }
+
+    .details-box p {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .gallery img {
+      width: 100%;
+      height: 170px;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    /* FOOTER */
+
+    footer {
+      background: #172033;
+      color: white;
+      padding: 40px 6%;
+      text-align: center;
+    }
+
+    footer p {
+      color: #aab4c5;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    /* RESPONSIVE */
+
+    @media (max-width: 900px) {
+      .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .map-container {
+        position: relative;
+        top: auto;
+        height: 450px;
+        min-height: 450px;
+        order: -1;
+      }
+
+      #map {
+        min-height: 450px;
+      }
+    }
+
+    @media (max-width: 650px) {
+      nav {
+        padding: 0 20px;
+      }
+
+      nav a {
+        display: none;
+      }
+
+      .hero {
+        padding: 45px 20px 65px;
+      }
+
+      .search-box {
+        flex-direction: column;
+      }
+
+      .search-box button {
+        height: 48px;
+      }
+
+      .suggestions {
+        left: 10px;
+        right: 10px;
+        top: calc(100% + 55px);
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hospital-card {
+        grid-template-columns: 1fr;
+      }
+
+      .hospital-image {
+        width: 100%;
+        height: 180px;
+      }
+
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .gallery {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+
+  <nav>
+    <div class="logo">
+      Care<span>Finder</span>
+    </div>
+
+    <div>
+      <a href="#search">Search</a>
+      <a href="#results">Hospitals</a>
+      <a href="#features">Features</a>
+    </div>
+  </nav>
+
+
+  <!-- HERO -->
+
+  <section class="hero" id="search">
+
+    <div class="hero-inner">
+
+      <h1>
+        Find hospitals near any address.
+      </h1>
+
+      <p>
+        Enter an address, city, PIN code, or landmark.
+        CareFinder finds nearby hospitals, shows them on a map,
+        provides available facility information, and opens directions
+        in Google Maps.
+      </p>
+
+      <div class="search-box">
+
+        <input
+          id="addressInput"
+          type="text"
+          placeholder="Enter address, city, PIN code or landmark..."
+          autocomplete="off"
+        />
+
+        <button onclick="searchLocation()">
+          Find Hospitals
+        </button>
+
+        <div id="suggestions" class="suggestions"></div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- FEATURES -->
+
+  <section class="features" id="features">
+
+    <div class="feature-grid">
+
+      <div class="feature">
+        <div class="feature-icon">📍</div>
+        <h3>Smart Address Search</h3>
+        <p>
+          Search using a full address, city, PIN code or landmark.
+        </p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🏥</div>
+        <h3>Nearby Hospitals</h3>
+        <p>
+          Finds hospitals around the selected location.
+        </p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🗺️</div>
+        <h3>Interactive Map</h3>
+        <p>
+          See your location and nearby hospitals on a live map.
+        </p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🚗</div>
+        <h3>Google Maps Route</h3>
+        <p>
+          Open driving directions from your location to the hospital.
+        </p>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- MAIN -->
+
+  <main id="results">
+
+    <div id="status" class="status">
+      <div class="spinner"></div>
+      <div id="statusText">
+        Searching...
+      </div>
+    </div>
+
+
+    <!-- FILTERS -->
+
+    <div class="toolbar">
+
+      <div class="toolbar-group">
+
+        <select id="ownershipFilter" onchange="applyFilters()">
+          <option value="all">All hospitals</option>
+          <option value="government">Government</option>
+          <option value="private">Private</option>
+          <option value="other">Other / Unknown</option>
+        </select>
+
+        <select id="radiusFilter" onchange="searchHospitals()">
+          <option value="5">Within 5 km</option>
+          <option value="10" selected>Within 10 km</option>
+          <option value="25">Within 25 km</option>
+        </select>
+
+        <select id="sortFilter" onchange="applyFilters()">
+          <option value="distance">Nearest first</option>
+          <option value="name">Name</option>
+          <option value="facilities">More facilities</option>
+        </select>
+
+      </div>
+
+      <div class="results-count" id="resultsCount">
+        Search for a location
+      </div>
+
+    </div>
+
+
+    <div class="layout">
+
+      <!-- HOSPITAL LIST -->
+
+      <section>
+
+        <div id="hospitalList" class="hospital-list">
+
+          <div class="empty">
+            <h3>Find a hospital</h3>
+            <p>
+              Enter a location above to search nearby hospitals.
+            </p>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- MAP -->
+
+      <section class="map-container">
+
+        <div id="map"></div>
+
+      </section>
+
+    </div>
+
+
+    <!-- DETAILS -->
+
+    <section id="details" class="details">
+
+      <div class="details-header">
+
+        <div>
+          <h2 id="detailsName">
+            Hospital
+          </h2>
+
+          <p id="detailsAddress"></p>
+        </div>
+
+        <button
+          class="btn btn-secondary"
+          onclick="closeDetails()"
+        >
+          Close
+        </button>
+
+      </div>
+
+
+      <div class="details-grid">
+
+        <div class="details-box">
+          <h3>Ownership</h3>
+          <p id="detailsOwnership">Unknown</p>
+        </div>
+
+        <div class="details-box">
+          <h3>Distance</h3>
+          <p id="detailsDistance">-</p>
+        </div>
+
+        <div class="details-box">
+          <h3>Phone</h3>
+          <p id="detailsPhone">Not available</p>
+        </div>
+
+        <div class="details-box">
+          <h3>Opening Hours</h3>
+          <p id="detailsHours">Not available</p>
+        </div>
+
+        <div class="details-box">
+          <h3>Facilities</h3>
+          <p id="detailsFacilities">Not available</p>
+        </div>
+
+        <div class="details-box">
+          <h3>Website</h3>
+          <p id="detailsWebsite">Not available</p>
+        </div>
+
+      </div>
+
+
+      <div class="actions" style="margin-top:20px;">
+
+        <button
+          class="btn btn-primary"
+          id="detailsRoute"
+        >
+          🚗 Open Google Maps Route
+        </button>
+
+        <button
+          class="btn btn-green"
+          id="detailsCall"
+        >
+          📞 Call Hospital
+        </button>
+
+      </div>
+
+
+      <div class="gallery">
+
+        <img id="gallery1" src="" alt="Hospital image">
+
+        <img id="gallery2" src="" alt="Hospital image">
+
+        <img id="gallery3" src="" alt="Hospital image">
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- FOOTER -->
+
+  <footer>
+
+    <strong>CareFinder</strong>
+
+    <p>
+      Hospital information is collected from OpenStreetMap data.
+      Availability of phone numbers, ownership, hours and facilities
+      depends on the information mapped by contributors.
+    </p>
+
+  </footer>
+
+
+  <!-- LEAFLET -->
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+  <script>
+
+    /*
+      ============================================================
+      CAREFINDER
+      ============================================================
+
+      Address:
+      Photon Geocoder
+
+      Hospital data:
+      OpenStreetMap / Overpass
+
+      Map:
+      Leaflet + OpenStreetMap
+
+      Navigation:
+      Google Maps Directions
+
+      NO GOOGLE API KEY REQUIRED
+      ============================================================
+    */
+
+
+    const GEOCODER =
+      "https://photon.komoot.io/api/";
+
+    const OVERPASS_ENDPOINTS = [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter"
+    ];
+
+    const FALLBACK_IMAGE =
+      "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=900&q=80";
+
+
+    let map;
+
+    let userMarker = null;
+
+    let hospitalMarkers = [];
+
+    let currentLocation = null;
+
+    let allHospitals = [];
+
+    let currentHospitals = [];
+
+    let searchTimer = null;
+
+
+    /*
+      ============================================================
+      INITIALIZE MAP
+      ============================================================
+    */
+
+    function initMap() {
+
+      map = L.map("map").setView(
+        [17.3850, 78.4867],
+        7
+      );
+
+      L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          maxZoom: 19,
+          attribution:
+            '&copy; OpenStreetMap contributors'
+        }
+      ).addTo(map);
+    }
+
+
+    /*
+      ============================================================
+      ADDRESS AUTOCOMPLETE
+      ============================================================
+    */
+
+    const addressInput =
+      document.getElementById("addressInput");
+
+    const suggestions =
+      document.getElementById("suggestions");
+
+
+    addressInput.addEventListener(
+      "input",
+      function () {
+
+        const value =
+          this.value.trim();
+
+        clearTimeout(searchTimer);
+
+        if (value.length < 3) {
+
+          suggestions.innerHTML = "";
+
+          return;
+        }
+
+        searchTimer =
+          setTimeout(
+            () => autocomplete(value),
+            450
+          );
+      }
+    );
+
+
+    document.addEventListener(
+      "click",
+      function (event) {
+
+        if (
+          !event.target.closest(".search-box")
+        ) {
+
+          suggestions.innerHTML = "";
+
+        }
+
+      }
+    );
+
+
+    async function autocomplete(query) {
+
+      try {
+
+        const url =
+          GEOCODER +
+          "?q=" +
+          encodeURIComponent(query) +
+          "&limit=5";
+
+        const response =
+          await fetch(url);
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data =
+          await response.json();
+
+        suggestions.innerHTML = "";
+
+        if (
+          !data.features ||
+          data.features.length === 0
+        ) {
+          return;
+        }
+
+
+        data.features.forEach(
+          feature => {
+
+            const props =
+              feature.properties || {};
+
+            const coords =
+              feature.geometry.coordinates;
+
+            const text =
+              formatPhotonAddress(props);
+
+            const div =
+              document.createElement("div");
+
+            div.className =
+              "suggestion";
+
+            div.textContent =
+              text;
+
+            div.onclick =
+              function () {
+
+                addressInput.value =
+                  text;
+
+                suggestions.innerHTML =
+                  "";
+
+                currentLocation = {
+                  lat: coords[1],
+                  lon: coords[0],
+                  name: text
+                };
+
+                searchHospitals();
+
+              };
+
+            suggestions.appendChild(div);
+
+          }
+        );
+
+      } catch (error) {
+
+        console.log(
+          "Autocomplete error:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /*
+      ============================================================
+      FORMAT ADDRESS
+      ============================================================
+    */
+
+    function formatPhotonAddress(props) {
+
+      const parts = [];
+
+      if (props.name) {
+        parts.push(props.name);
+      }
+
+      if (props.street) {
+        parts.push(props.street);
+      }
+
+      if (props.district) {
+        parts.push(props.district);
+      }
+
+      if (props.city) {
+        parts.push(props.city);
+      }
+
+      if (props.state) {
+        parts.push(props.state);
+      }
+
+      if (props.postcode) {
+        parts.push(props.postcode);
+      }
+
+      if (props.country) {
+        parts.push(props.country);
+      }
+
+      return [
+        ...new Set(parts)
+      ].join(", ");
+    }
+
+
+    /*
+      ============================================================
+      SEARCH LOCATION
+      ============================================================
+    */
+
+    async function searchLocation() {
+
+      const query =
+        addressInput.value.trim();
+
+      if (!query) {
+
+        alert(
+          "Please enter an address, city, PIN code or landmark."
+        );
+
+        return;
+      }
+
+
+      showStatus(
+        "Finding your location..."
+      );
+
+
+      try {
+
+        const url =
+          GEOCODER +
+          "?q=" +
+          encodeURIComponent(query) +
+          "&limit=1";
+
+
+        const response =
+          await fetch(url);
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            "Address service unavailable"
+          );
+
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !data.features ||
+          data.features.length === 0
+        ) {
+
+          hideStatus();
+
+          alert(
+            "Location not found. Try entering a city, PIN code, landmark or a more complete address."
+          );
+
+          return;
+        }
+
+
+        const feature =
+          data.features[0];
+
+        const coords =
+          feature.geometry.coordinates;
+
+        const props =
+          feature.properties || {};
+
+        const address =
+          formatPhotonAddress(props);
+
+
+        currentLocation = {
+
+          lat: coords[1],
+
+          lon: coords[0],
+
+          name: address || query
+
+        };
+
+
+        addressInput.value =
+          currentLocation.name;
+
+
+        suggestions.innerHTML =
+          "";
+
+
+        await searchHospitals();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        hideStatus();
+
+        alert(
+          "Could not find that location. Please check your internet connection and try again."
+        );
+
+      }
+
+    }
+
+
+    /*
+      ENTER KEY
+    */
+
+    addressInput.addEventListener(
+      "keydown",
+      function(event) {
+
+        if (event.key === "Enter") {
+
+          event.preventDefault();
+
+          searchLocation();
+
+        }
+
+      }
+    );
+
+
+    /*
+      ============================================================
+      HOSPITAL SEARCH
+      ============================================================
+    */
+
+    async function searchHospitals() {
+
+      if (!currentLocation) {
+
+        await searchLocation();
+
+        return;
+      }
+
+
+      showStatus(
+        "Searching nearby hospitals..."
+      );
+
+
+      const radiusKm =
+        Number(
+          document.getElementById(
+            "radiusFilter"
+          ).value
+        );
+
+
+      try {
+
+        const hospitals =
+          await fetchHospitals(
+            currentLocation.lat,
+            currentLocation.lon,
+            radiusKm
+          );
+
+
+        allHospitals =
+          hospitals;
+
+
+        hideStatus();
+
+
+        updateUserMarker();
+
+
+        applyFilters();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        hideStatus();
+
+        document.getElementById(
+          "hospitalList"
+        ).innerHTML = `
+          <div class="empty">
+            <h3>Hospital search failed</h3>
+            <p>
+              The hospital data service may be temporarily busy.
+              Please try again in a few seconds.
+            </p>
+            <br>
+            <button
+              class="btn btn-primary"
+              onclick="searchHospitals()"
+            >
+              Try Again
+            </button>
+          </div>
+        `;
+
+      }
+
+    }
+
+
+    /*
+      ============================================================
+      OVERPASS
+      ============================================================
+    */
+
+    async function fetchHospitals(
+      lat,
+      lon,
+      radiusKm
+    ) {
+
+      const radius =
+        radiusKm * 1000;
+
+
+      const query = `
+        [out:json][timeout:25];
+
+        (
+          node["amenity"="hospital"](around:${radius},${lat},${lon});
+          way["amenity"="hospital"](around:${radius},${lat},${lon});
+          relation["amenity"="hospital"](around:${radius},${lat},${lon});
+
+          node["healthcare"="hospital"](around:${radius},${lat},${lon});
+          way["healthcare"="hospital"](around:${radius},${lat},${lon});
+          relation["healthcare"="hospital"](around:${radius},${lat},${lon});
+        );
+
+        out center tags;
+      `;
+
+
+      let lastError;
+
+
+      for (
+        const endpoint
+        of OVERPASS_ENDPOINTS
+      ) {
+
+        try {
+
+          const response =
+            await fetch(
+              endpoint,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/x-www-form-urlencoded"
+                },
+
+                body:
+                  "data=" +
+                  encodeURIComponent(query)
+              }
+            );
+
+
+          if (!response.ok) {
+
+            throw new Error(
+              "Overpass server error " +
+              response.status
+            );
+
+          }
+
+
+          const data =
+            await response.json();
+
+
+          const results =
+            data.elements
+              .map(
+                element =>
+                  normalizeHospital(
+                    element,
+                    lat,
+                    lon
+                  )
+              )
+              .filter(
+                hospital =>
+                  hospital &&
+                  hospital.name
+              );
+
+
+          return removeDuplicates(
+            results
+          );
+
+        } catch (error) {
+
+          lastError =
+            error;
+
+          console.warn(
+            "Overpass endpoint failed:",
+            endpoint,
+            error
+          );
+
+        }
+
+      }
+
+
+      throw lastError ||
+        new Error(
+          "All hospital servers failed"
+        );
+
+    }
+
+
+    /*
+      ============================================================
+      NORMALIZE HOSPITAL
+      ============================================================
+    */
+
+    function normalizeHospital(
+      element,
+      userLat,
+      userLon
+    ) {
+
+      const tags =
+        element.tags || {};
+
+
+      let lat =
+        element.lat;
+
+      let lon =
+        element.lon;
+
+
+      if (
+        element.center
+      ) {
+
+        lat =
+          element.center.lat;
+
+        lon =
+          element.center.lon;
+
+      }
+
+
+      if (
+        typeof lat !== "number" ||
+        typeof lon !== "number"
+      ) {
+
+        return null;
+
+      }
+
+
+      const name =
+        tags.name ||
+        tags["name:en"] ||
+        tags.operator ||
+        "Unnamed Hospital";
+
+
+      const distance =
+        calculateDistance(
+          userLat,
+          userLon,
+          lat,
+          lon
+        );
+
+
+      return {
+
+        id:
+          element.id,
+
+        lat,
+
+        lon,
+
+        name,
+
+        distance,
+
+        tags,
+
+        ownership:
+          detectOwnership(tags),
+
+        facilities:
+          detectFacilities(tags),
+
+        address:
+          buildHospitalAddress(tags),
+
+        phone:
+          tags.phone ||
+          tags["contact:phone"] ||
+          "",
+
+        website:
+          tags.website ||
+          tags["contact:website"] ||
+          "",
+
+        hours:
+          tags.opening_hours ||
+          "",
+
+        image:
+          tags.image ||
+          FALLBACK_IMAGE
+
+      };
+
+    }
+
+
+    /*
+      ============================================================
+      OWNERSHIP
+      ============================================================
+    */
+
+    function detectOwnership(tags) {
+
+      const text = (
+
+        String(
+          tags.operator || ""
+        ) +
+
+        " " +
+
+        String(
+          tags.name || ""
+        ) +
+
+        " " +
+
+        String(
+          tags.government || ""
+        )
+
+      ).toLowerCase();
+
+
+      if (
+        tags.government === "yes" ||
+        text.includes("government") ||
+        text.includes("govt") ||
+        text.includes("public hospital") ||
+        text.includes("district hospital") ||
+        text.includes("civil hospital")
+      ) {
+
+        return "Government";
+
+      }
+
+
+      if (
+        text.includes("private") ||
+        tags.operator_type === "private"
+      ) {
+
+        return "Private";
+
+      }
+
+
+      return "Unknown";
+
+    }
+
+
+    /*
+      ============================================================
+      FACILITIES
+      ============================================================
+    */
+
+    function detectFacilities(tags) {
+
+      const facilities = [];
+
+
+      if (
+        tags.emergency === "yes"
+      ) {
+
+        facilities.push(
+          "Emergency"
+        );
+
+      }
+
+
+      if (
+        tags.wheelchair === "yes"
+      ) {
+
+        facilities.push(
+          "Wheelchair Access"
+        );
+
+      }
+
+
+      if (
+        tags.parking === "yes"
+      ) {
+
+        facilities.push(
+          "Parking"
+        );
+
+      }
+
+
+      if (
+        tags.ambulance === "yes"
+      ) {
+
+        facilities.push(
+          "Ambulance"
+        );
+
+      }
+
+
+      if (
+        tags["healthcare:speciality"]
+      ) {
+
+        facilities.push(
+          tags["healthcare:speciality"]
+        );
+
+      }
+
+
+      return facilities;
+
+    }
+
+
+    /*
+      ============================================================
+      ADDRESS
+      ============================================================
+    */
+
+    function buildHospitalAddress(tags) {
+
+      const parts = [];
+
+
+      const values = [
+
+        tags["addr:housenumber"],
+
+        tags["addr:street"],
+
+        tags["addr:suburb"],
+
+        tags["addr:city"],
+
+        tags["addr:district"],
+
+        tags["addr:state"],
+
+        tags["addr:postcode"]
+
+      ];
+
+
+      values.forEach(
+        value => {
+
+          if (value) {
+
+            parts.push(value);
+
+          }
+
+        }
+      );
+
+
+      return [
+        ...new Set(parts)
+      ].join(", ");
+
+    }
+
+
+    /*
+      ============================================================
+      DUPLICATES
+      ============================================================
+    */
+
+    function removeDuplicates(
+      hospitals
+    ) {
+
+      const seen =
+        new Set();
+
+
+      return hospitals.filter(
+        hospital => {
+
+          const key =
+            hospital.name
+              .toLowerCase()
+              .replace(
+                /[^a-z0-9]/g,
+                ""
+              );
+
+
+          if (
+            seen.has(key)
+          ) {
+
+            return false;
+
+          }
+
+
+          seen.add(key);
+
+          return true;
+
+        }
+      );
+
+    }
+
+
+    /*
+      ============================================================
+      DISTANCE
+      ============================================================
+    */
+
+    function calculateDistance(
+      lat1,
+      lon1,
+      lat2,
+      lon2
+    ) {
+
+      const R =
+        6371;
+
+
+      const dLat =
+        toRadians(
+          lat2 - lat1
+        );
+
+
+      const dLon =
+        toRadians(
+          lon2 - lon1
+        );
+
+
+      const a =
+        Math.sin(dLat / 2) *
+        Math.sin(dLat / 2) +
+
+        Math.cos(
+          toRadians(lat1)
+        ) *
+
+        Math.cos(
+          toRadians(lat2)
+        ) *
+
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+
+      const c =
+        2 *
+        Math.atan2(
+          Math.sqrt(a),
+          Math.sqrt(1 - a)
+        );
+
+
+      return R * c;
+
+    }
+
+
+    function toRadians(
+      degrees
+    ) {
+
+      return degrees *
+        Math.PI /
+        180;
+
+    }
+
+
+    /*
+      ============================================================
+      FILTERS
+      ============================================================
+    */
+
+    function applyFilters() {
+
+      const ownership =
+        document.getElementById(
+          "ownershipFilter"
+        ).value;
+
+
+      const sort =
+        document.getElementById(
+          "sortFilter"
+        ).value;
+
+
+      currentHospitals =
+        allHospitals.filter(
+          hospital => {
+
+            if (
+              ownership === "all"
+            ) {
+
+              return true;
+
+            }
+
+
+            if (
+              ownership ===
+              "government"
+            ) {
+
+              return (
+                hospital.ownership ===
+                "Government"
+              );
+
+            }
+
+
+            if (
+              ownership ===
+              "private"
+            ) {
+
+              return (
+                hospital.ownership ===
+                "Private"
+              );
+
+            }
+
+
+            if (
+              ownership ===
+              "other"
+            ) {
+
+              return (
+                hospital.ownership ===
+                "Unknown"
+              );
+
+            }
+
+
+            return true;
+
+          }
+        );
+
+
+      if (
+        sort === "distance"
+      ) {
+
+        currentHospitals.sort(
+          (a, b) =>
+            a.distance -
+            b.distance
+        );
+
+      }
+
+
+      if (
+        sort === "name"
+      ) {
+
+        currentHospitals.sort(
+          (a, b) =>
+            a.name.localeCompare(
+              b.name
+            )
+        );
+
+      }
+
+
+      if (
+        sort === "facilities"
+      ) {
+
+        currentHospitals.sort(
+          (a, b) =>
+            b.facilities.length -
+            a.facilities.length
+        );
+
+      }
+
+
+      renderHospitals();
+
+    }
+
+
+    /*
+      ============================================================
+      RENDER HOSPITALS
+      ============================================================
+    */
+
+    function renderHospitals() {
+
+      const list =
+        document.getElementById(
+          "hospitalList"
+        );
+
+
+      document.getElementById(
+        "resultsCount"
+      ).textContent =
+        currentHospitals.length +
+        " hospital" +
+        (
+          currentHospitals.length === 1
+            ? ""
+            : "s"
+        );
+
+
+      clearHospitalMarkers();
+
+
+      if (
+        currentHospitals.length === 0
+      ) {
+
+        list.innerHTML = `
+          <div class="empty">
+            <h3>No hospitals found</h3>
+            <p>
+              Try increasing the search radius or changing the filters.
+            </p>
+          </div>
+        `;
+
+        return;
+
+      }
+
+
+      list.innerHTML = "";
+
+
+      currentHospitals.forEach(
+        (hospital, index) => {
+
+          list.appendChild(
+            createHospitalCard(
+              hospital,
+              index
+            )
+          );
+
+
+          addHospitalMarker(
+            hospital,
+            index
+          );
+
+        }
+      );
+
+    }
+
+
+    /*
+      ============================================================
+      HOSPITAL CARD
+      ============================================================
+    */
+
+    function createHospitalCard(
+      hospital,
+      index
+    ) {
+
+      const card =
+        document.createElement(
+          "div"
+        );
+
+
+      card.className =
+        "hospital-card";
+
+
+      const ownershipClass =
+        hospital.ownership ===
+        "Government"
+          ? "green"
+          : hospital.ownership ===
+            "Private"
+              ? "orange"
+              : "";
+
+
+      const facilities =
+        hospital.facilities.length
+          ? hospital.facilities
+          : ["Information limited"];
+
+
+      const facilityHtml =
+        facilities
+          .slice(0, 4)
+          .map(
+            facility =>
+              `<span class="badge">${escapeHtml(
+                facility
+              )}</span>`
+          )
+          .join("");
+
+
+      card.innerHTML = `
+
+        <img
+          class="hospital-image"
+          src="${escapeHtml(hospital.image)}"
+          alt="${escapeHtml(hospital.name)}"
+          onerror="this.src='${FALLBACK_IMAGE}'"
+        >
+
+        <div class="hospital-content">
+
+          <h2>
+            ${escapeHtml(hospital.name)}
+          </h2>
+
+          <div class="address">
+            ${
+              escapeHtml(
+                hospital.address ||
+                "Address information not available"
+              )
+            }
+          </div>
+
+          <div class="badges">
+
+            <span class="badge ${ownershipClass}">
+              ${escapeHtml(
+                hospital.ownership
+              )}
+            </span>
+
+            ${facilityHtml}
+
+          </div>
+
+          <div class="hospital-meta">
+            📍 ${hospital.distance.toFixed(1)} km away
+          </div>
+
+          <div class="actions">
+
+            <button
+              class="btn btn-primary"
+              onclick="openRoute(${index})"
+            >
+              🚗 Route
+            </button>
+
+            <button
+              class="btn btn-secondary"
+              onclick="showDetails(${index})"
+            >
+              View Details
+            </button>
+
+            ${
+              hospital.phone
+                ? `
+                  <button
+                    class="btn btn-green"
+                    onclick="callHospital(${index})"
+                  >
+                    📞 Call
+                  </button>
+                `
+                : ""
+            }
+
+          </div>
+
+        </div>
+      `;
+
+
+      return card;
+
+    }
+
+
+    /*
+      ============================================================
+      MAP MARKERS
+      ============================================================
+    */
+
+    function updateUserMarker() {
+
+      if (!currentLocation) {
+        return;
+      }
+
+
+      if (userMarker) {
+
+        map.removeLayer(
+          userMarker
+        );
+
+      }
+
+
+      userMarker =
+        L.marker(
+          [
+            currentLocation.lat,
+            currentLocation.lon
+          ]
+        )
+        .addTo(map)
+        .bindPopup(
+          "<b>Your searched location</b><br>" +
+          escapeHtml(
+            currentLocation.name
+          )
+        );
+
+
+      map.setView(
+        [
+          currentLocation.lat,
+          currentLocation.lon
+        ],
+        13
+      );
+
+    }
+
+
+    function addHospitalMarker(
+      hospital,
+      index
+    ) {
+
+      const marker =
+        L.marker(
+          [
+            hospital.lat,
+            hospital.lon
+          ]
+        )
+        .addTo(map);
+
+
+      marker.bindPopup(`
+        <strong>
+          ${escapeHtml(
+            hospital.name
+          )}
+        </strong>
+
+        <br>
+
+        ${hospital.distance.toFixed(1)} km away
+
+        <br><br>
+
+        <button
+          onclick="showDetails(${index})"
+          style="
+            padding:6px 10px;
+            border:none;
+            background:#0b7cff;
+            color:white;
+            border-radius:5px;
+            cursor:pointer;
+          "
+        >
+          View Details
+        </button>
+      `);
+
+
+      hospitalMarkers.push(
+        marker
+      );
+
+    }
+
+
+    function clearHospitalMarkers() {
+
+      hospitalMarkers.forEach(
+        marker =>
+          map.removeLayer(
+            marker
+          )
+      );
+
+
+      hospitalMarkers = [];
+
+    }
+
+
+    /*
+      ============================================================
+      GOOGLE MAPS ROUTE
+      ============================================================
+    */
+
+    function openRoute(
+      index
+    ) {
+
+      const hospital =
+        currentHospitals[index];
+
+
+      if (!currentLocation) {
+
+        alert(
+          "Please search for a location first."
+        );
+
+        return;
+
+      }
+
+
+      const origin =
+        currentLocation.lat +
+        "," +
+        currentLocation.lon;
+
+
+      const destination =
+        hospital.lat +
+        "," +
+        hospital.lon;
+
+
+      const url =
+        "https://www.google.com/maps/dir/?api=1" +
+        "&origin=" +
+        encodeURIComponent(
+          origin
+        ) +
+        "&destination=" +
+        encodeURIComponent(
+          destination
+        ) +
+        "&travelmode=driving";
+
+
+      window.open(
+        url,
+        "_blank"
+      );
+
+    }
+
+
+    /*
+      ============================================================
+      DETAILS
+      ============================================================
+    */
+
+    function showDetails(
+      index
+    ) {
+
+      const hospital =
+        currentHospitals[index];
+
+
+      document.getElementById(
+        "detailsName"
+      ).textContent =
+        hospital.name;
+
+
+      document.getElementById(
+        "detailsAddress"
+      ).textContent =
+        hospital.address ||
+        "Address information not available";
+
+
+      document.getElementById(
+        "detailsOwnership"
+      ).textContent =
+        hospital.ownership;
+
+
+      document.getElementById(
+        "detailsDistance"
+      ).textContent =
+        hospital.distance.toFixed(2) +
+        " km";
+
+
+      document.getElementById(
+        "detailsPhone"
+      ).textContent =
+        hospital.phone ||
+        "Not available";
+
+
+      document.getElementById(
+        "detailsHours"
+      ).textContent =
+        hospital.hours ||
+        "Not available";
+
+
+      document.getElementById(
+        "detailsFacilities"
+      ).textContent =
+        hospital.facilities.length
+          ? hospital.facilities.join(
+              ", "
+            )
+          : "Not available";
+
+
+      const website =
+        document.getElementById(
+          "detailsWebsite"
+        );
+
+
+      if (
+        hospital.website
+      ) {
+
+        website.innerHTML = `
+          <a
+            href="${escapeHtml(hospital.website)}"
+            target="_blank"
+            rel="noopener"
+          >
+            Open website
+          </a>
+        `;
+
+      } else {
+
+        website.textContent =
+          "Not available";
+
+      }
+
+
+      document.getElementById(
+        "gallery1"
+      ).src =
+        hospital.image ||
+        FALLBACK_IMAGE;
+
+
+      document.getElementById(
+        "gallery2"
+      ).src =
+        hospital.image ||
+        FALLBACK_IMAGE;
+
+
+      document.getElementById(
+        "gallery3"
+      ).src =
+        hospital.image ||
+        FALLBACK_IMAGE;
+
+
+      document.getElementById(
+        "detailsRoute"
+      ).onclick =
+        () =>
+          openRoute(index);
+
+
+      const callButton =
+        document.getElementById(
+          "detailsCall"
+        );
+
+
+      if (
+        hospital.phone
+      ) {
+
+        callButton.style.display =
+          "inline-block";
+
+        callButton.onclick =
+          () =>
+            callHospital(index);
+
+      } else {
+
+        callButton.style.display =
+          "none";
+
+      }
+
+
+      const details =
+        document.getElementById(
+          "details"
+        );
+
+
+      details.classList.add(
+        "show"
+      );
+
+
+      details.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    }
+
+
+    function closeDetails() {
+
+      document
+        .getElementById(
+          "details"
+        )
+        .classList.remove(
+          "show"
+        );
+
+    }
+
+
+    /*
+      ============================================================
+      PHONE
+      ============================================================
+    */
+
+    function callHospital(
+      index
+    ) {
+
+      const hospital =
+        currentHospitals[index];
+
+
+      if (!hospital.phone) {
+
+        alert(
+          "Phone number is not available."
+        );
+
+        return;
+
+      }
+
+
+      window.location.href =
+        "tel:" +
+        hospital.phone;
+
+    }
+
+
+    /*
+      ============================================================
+      STATUS
+      ============================================================
+    */
+
+    function showStatus(
+      message
+    ) {
+
+      document
+        .getElementById(
+          "status"
+        )
+        .classList.add(
+          "show"
+        );
+
+
+      document.getElementById(
+        "statusText"
+      ).textContent =
+        message;
+
+    }
+
+
+    function hideStatus() {
+
+      document
+        .getElementById(
+          "status"
+        )
+        .classList.remove(
+          "show"
+        );
+
+    }
+
+
+    /*
+      ============================================================
+      HTML ESCAPE
+      ============================================================
+    */
+
+    function escapeHtml(
+      value
+    ) {
+
+      return String(
+        value ?? ""
+      )
+      .replace(
+        /&/g,
+        "&amp;"
+      )
+      .replace(
+        /</g,
+        "&lt;"
+      )
+      .replace(
+        />/g,
+        "&gt;"
+      )
+      .replace(
+        /"/g,
+        "&quot;"
+      )
+      .replace(
+        /'/g,
+        "&#039;"
+      );
+
+    }
+
+
+    /*
+      ============================================================
+      START APPLICATION
+      ============================================================
+    */
+
+    window.addEventListener(
+      "load",
+      function() {
+
+        initMap();
+
+      }
+    );
+
+  </script>
+
+</body>
+</html>
